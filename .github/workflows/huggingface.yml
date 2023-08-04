@@ -1,0 +1,37 @@
+name: Sync to Hugging Face hub
+on:
+  workflow_run:
+    workflows: ["Build Docker Image"]
+    types:
+      - completed
+  push:
+    branches:
+      - main
+
+  # to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+#find . -maxdepth 1 -regextype posix-egrep ! -iregex './(out|.github|.gitignore|.git)' | xargs rm -rf
+
+jobs:
+  sync-to-hub:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          lfs: true
+      - name: Push to hub
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_USERNAME: ${{ secrets.HF_USERNAME }}
+          SPACE_NAME: ${{ secrets.SPACE_NAME }}
+        run: |
+          npm i
+          npm run build
+          git clone https://$HF_USERNAME:$HF_TOKEN@huggingface.co/spaces/$HF_USERNAME/$SPACE_NAME main
+          mv out/* $SPACE_NAME
+          cd $SPACE_NAME
+          git add -A
+          git commit -am "auto deploy"
+          git push origin main -f
