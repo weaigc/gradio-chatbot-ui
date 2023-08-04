@@ -1,6 +1,8 @@
 name: Sync to Hugging Face hub
 on:
   repository_dispatch:
+    types:
+      - manual-trigger-all
   push:
     branches:
       - main
@@ -28,8 +30,7 @@ jobs:
           npm i
           npm run build
           git clone https://$HF_USERNAME:$HF_TOKEN@huggingface.co/spaces/$HF_USERNAME/$SPACE_NAME --depth=1 target
-          find target -maxdepth 1 -regextype posix-egrep ! -iregex 'target/?(README.md|.git|.gitignore)' | xargs rm -rf
-          rm -rf target/*
+          find target -maxdepth 1 -regextype posix-egrep ! -iregex 'target/?(|README.md|.git|.gitignore)' | xargs rm -rf
           mv out/* target
           cd target
           git config user.name $HF_USERNAME
@@ -37,12 +38,3 @@ jobs:
           git add -A
           git commit -am "auto deploy"
           git push origin main -f
-
-      - name: Push to gh_pages
-        uses: s0/git-publish-subdir-action@develop
-        env:
-          REPO: self
-          BRANCH: gh_pages # The branch name where you want to push the assets
-          FOLDER: target # The directory where your assets are generated
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # GitHub will automatically add this - you don't need to bother getting a token
-          MESSAGE: "Build: ({sha}) {msg}" # The commit message
